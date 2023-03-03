@@ -14,7 +14,7 @@ This needs root access on your Android device.
 #### Android 8.0+
 For Android 8.0+ SSAID is unique for every installed app, to get value for FTM run this command in a rooted shell:
 ```
-# grep com.fortinet /data/system/users/0/settings_ssaid.xml                                                                 
+# grep com.fortinet /data/system/users/0/settings_ssaid.xml | cut -d" " -f6 | cut -d"=" -f2 | sed 's/"//g'
 ```
 
 Output should look like this:
@@ -40,7 +40,10 @@ Copy the value from quotes and paste it to the script as `DEVICE_ID`.
 The encrypted UUID is stored in the UUID key of the XML file stored at /data/data/com.fortinet.android.ftm/shared_prefs/FortiToken_SharedPrefs_NAME.xml.
 
 ```
-grep UUID /data/data/com.fortinet.android.ftm/shared_prefs/FortiToken_SharedPrefs_NAME.xml
+grep UUID /data/data/com.fortinet.android.ftm/shared_prefs/FortiToken_SharedPrefs_NAME.xml | sed -e 's/^[ ]*//' | cut -d">" -f2 | cut -d"<" -f1
+```
+will return something like this:
+```
     <string name="UUID">N7gAr30eX72sR2owbVR4WrFiw4e3ignGBO6IcgA4qJjvBYjZvIxZXIMTHOix8QDt</string>
 ```
 
@@ -67,10 +70,23 @@ Copy the output and paste it as `SEED`.
 
 ## Usage
 
-Install requirements with `pip3 install -U -r requirements.txt`, then run with `python3 generate.py`.
+- Docker
+  - `docker build -t openftm:1.0.0 .`
+  - `export OFTM_SSAID=''`
+  - `export OFTM_UUID=''`
+  - `export OFTM_SEED=''`
+  - `xhost +`
+  - `docker run -it --privileged --rm --net host -v "/tmp/.X11-unix:/tmp/.X11-unix:ro" -e DISPLAY=$DISPLAY -e DISPLAY=$DISPLAY -e OFTM_UUID=$OFTM_UUID -e OFTM_SSAID=$OFTM_SSAID -e OFTM_SEED=$OFTM_SEED openftm:1.0.0 bash`
+  - `python main.py`
+  - `exit`
+  - `xhost -`
+- Manual:
+  - `cd src`
+  - `pip3 install -U -r requirements.txt` to install requirements
+  - `python3 main.py` to run it
 
 ```
-$ python3 generate.py
+$ python3 main.py
 UUID KEY: eefd7d4837294e94unknown
 UUID: bbc350195b88433dbcc7365cdbd130e5
 SEED KEY: eefd7d4837294e94unknownbbc350195b88433dbcc7365cdbd130e5
@@ -79,6 +95,12 @@ Current TOTP: 779726
 ```
 
 Printed TOTP SECRET is base32-encoded and can be used to setup TOTP codes in other authenticator applications like: KeePassXC, andOTP, SailOTP, Numberstation. Make sure to set the period to *60 seconds*.
+
+Configuration example with KeePassXC:
+- Custom settings
+  - Algorithm: SHA-1
+  - Time step: 60 sec
+  - Code size: 6 digits
 
 ## Disclaimer
 
